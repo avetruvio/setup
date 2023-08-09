@@ -26,17 +26,6 @@ apt -y install openssh-server tmux wget git
 echo pulling ssh keys
 wget 
 #this is where it dynamicizes from the basic install
-
-#install configs from github
-#echo "installing config"
-
-#alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME '
-#dotfiles clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
-#dotfiles checkout
-#dotfiles config --local status.showUntrackedFiles no
-
-#needs to be finished later, gonna be a pain to do 
-
 if [ "$var1" == 1 ]  
 #headless server
 then 
@@ -52,9 +41,19 @@ then
 elif [ "$var1" == 4 ]
 #desktop
 then 
-    apt install i3 i3lock lightdm cool-retro-term compton  i3-sensible-terminal xscreensaver xscreensaver-data xscreensaver-data-extra
+    apt install i3 i3lock lightdm cool-retro-term compton  i3-sensible-terminal xscreensaver xscreensaver-data xscreensaver-data-extra 
 elif ["$var1" == 5 ]
 #vps 
 then 
     apt install openvpn 
 fi
+
+#install configs from github
+#echo "installing config"
+
+#alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME '
+#dotfiles clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
+#dotfiles checkout
+#dotfiles config --local status.showUntrackedFiles no
+
+#needs to be finished later, gonna be a pain to do 
