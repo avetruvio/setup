@@ -12,18 +12,18 @@ else
 fi
 
 #define variables
-#var 1 is install reference
-#var 2 is installing tail scale
-#var 3 is for autoreboot upon script completion  
 echo "number 1-5 based on the type of install"
 echo "1-5 1 is headless server, 2 is vpn headless server, 3 is netbook, 4 is desktop, 5 is vps"
+#var 1 is install reference
 read -r -n 1 var1
 echo " " 
 echo "install tailscale y or n"
+#var 2 is installing tail scale
 read -r -n 1 var2
 echo " "
 echo "reboot upon completion?"
 echo "Y or N"
+#var 3 is for autoreboot upon script completion
 read -r -n 1 var3
 echo " "
 #inistal system stup, bisic tools and full update
