@@ -5,22 +5,29 @@ set -euo pipefail
 if [ $EUID == 0 ]
 then
     echo "standby"
-
+    sleep 10
 else
     echo "run as sudo"
     exit 2
 fi
 
-#define variable 
-echo "number 1-4 based on the type of install"
+#define variables
+#var 1 is install reference
+#var 2 is installing tail scale
+#var 3 is for autoreboot upon script completion  
+echo "number 1-5 based on the type of install"
 echo "1-5 1 is headless server, 2 is vpn headless server, 3 is netbook, 4 is desktop, 5 is vps"
 read -r -n 1 var1
 echo " " 
 echo "install tailscale y or n"
 read -r -n 1 var2
 echo " "
-echo "begenning setup standby" 
+echo "reboot upon completion?"
+echo "Y or N"
+read -r -n 1 var3
+echo " "
 #inistal system stup, bisic tools and full update
+echo "begenning setup standby" 
 apt -y update
 apt -y upgrade
 # install utils
@@ -77,3 +84,21 @@ fi
 
 #remove any excess packages
 apt autoremove -y 
+
+#extra info for making ssh configs eaiser
+sleep 20
+echo "Machine Name"
+echo "$HOSTNAME" 
+echo "machine IP"
+ip a | grep "scope global"
+whoami
+
+
+
+if  [ "$var3"  == y ] 
+
+then 
+    reboot now
+else
+echo "Setup Complete" 
+fi 
