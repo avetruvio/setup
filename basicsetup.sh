@@ -5,11 +5,45 @@ set -euo pipefail
 if [ $EUID == 0 ]
 then
     echo "standby"
-    sleep 10
+    sleep 2
 else
-    echo "run as sudo"
+    echo "dotfile install"
+    
+    
+
+echo "installing config"
+
+# Remove the existing .bashrc and .profile files if necessary
+rm -f ~/.bashrc
+rm -f ~/.profile
+
+# Define the 'dotfiles' alias
+alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
+# Clone the dotfiles into a bare repository
+/usr/bin/git clone --bare https://github.com/avetruvio/config.git $HOME/.dotfiles
+
+# Checkout the actual files in your home directory
+dotfiles checkout
+
+# If the checkout command produces an error due to pre-existing files,
+# the script will remove the conflicting files and re-run the checkout command
+if [ $? != 0 ]; then
+  echo "Removing pre-existing dot files."
+  dotfiles checkout 2>&1 | egrep "\s+\." | awk {'print $1'} | xargs -I{} rm -f {}
+  dotfiles checkout
+fi
+
+# Set the flag showUntrackedFiles to no on this specific (local) repository
+dotfiles config --local status.showUntrackedFiles no
+echo "dotfile install successfull"    
+    
     exit 2
 fi
+#define user for config install
+echo "please enter username for config"
+echo" "
+read -r var4 
 
 #define variables
 echo "number 1-5 based on the type of install"
@@ -102,34 +136,6 @@ fi
 
 
 #dotfiles attempt 2
-
-echo "installing config"
-
-# Remove the existing .bashrc and .profile files if necessary
-rm -f ~/.bashrc
-rm -f ~/.profile
-
-# Define the 'dotfiles' alias
-alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-
-# Clone the dotfiles into a bare repository
-/usr/bin/git clone --bare https://github.com/avetruvio/config.git $HOME/.dotfiles
-
-# Checkout the actual files in your home directory
-dotfiles checkout
-
-# If the checkout command produces an error due to pre-existing files,
-# the script will remove the conflicting files and re-run the checkout command
-if [ $? != 0 ]; then
-  echo "Removing pre-existing dot files."
-  dotfiles checkout 2>&1 | egrep "\s+\." | awk {'print $1'} | xargs -I{} rm -f {}
-  dotfiles checkout
-fi
-
-# Set the flag showUntrackedFiles to no on this specific (local) repository
-dotfiles config --local status.showUntrackedFiles no
-
-
 #needs to be finished later, gonna be a pain to do 
 
 
