@@ -13,7 +13,7 @@ fi
 
 #define variables
 echo "number 1-5 based on the type of install"
-echo "1-5 1 is headless server, 2 is vpn headless server, 3 is netbook, 4 is desktop, 5 is vps"
+echo "0-5 0 is just update, no configuration, 1 is headless server, 2 is vpn headless server, 3 is netbook, 4 is desktop, 5 is vps"
 #var 1 is install reference
 read -r -n 1 var1
 echo " " 
@@ -59,6 +59,11 @@ elif [ "$var1" == 5 ]
 #vps 
 then 
     apt install openvpn 
+elif [ "$var1" == 0]
+#just update aind install packages default to system
+then
+    apt update -y
+    apt upgrade -y
 fi
 #install tailscale segment 
 if [ "$var2" == y ]
@@ -86,16 +91,16 @@ fi
 apt autoremove -y 
 
 #extra info for making ssh configs eaiser
-sleep 20
-echo "Machine Name"
+sleep 3
+{
 echo "$HOSTNAME" 
-echo "machine IP"
 ip a | grep "scope global"
+echo "Hostanme"
 whoami
+} >> host-ini-info
 
-
-
-if  [ "$var3"  == y ] 
+echo "all info needed for ssh configuration is stored in the file in the home dir called host-ini-info"
+scp host-ini-info amber@149.56.98.27
 
 then 
     reboot now
