@@ -83,8 +83,26 @@ fi
 #dotfiles checkout
 #dotfiles config --local status.showUntrackedFiles no
 
-#needs to be finished later, gonna be a pain to do 
+#dotfiles attempt 1
+#install configs from github
+echo "installing config"
+rm .bashrc
+rm .profile
 
+dotfiles() {
+    /usr/bin/git --git-dir="$HOME"/.dotfiles/ --work-tree="$HOME"
+
+}
+
+
+
+#dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME '
+dotfiles clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
+dotfiles checkout
+dotfiles config --local status.showUntrackedFiles no
+
+
+#needs to be finished later, gonna be a pain to do 
 
 
 #remove any excess packages
@@ -106,7 +124,11 @@ scp host-ini-info amber@149.56.98.27:/host-config-files/
 
 if [ "$var3" == y ]
 then 
+    echo "Setup Complete, Rebooting"
+    sleep 7
     reboot now
 else
 echo "Setup Complete" 
 fi 
+#script is written by Avitruvio
+
