@@ -100,7 +100,7 @@ whoami
 } >> host-ini-info
 
 echo "all info needed for ssh configuration is stored in the file in the home dir called host-ini-info"
-scp host-ini-info amber@149.56.98.27
+scp host-ini-info amber@149.56.98.27:/host-config-files/
 if [ "$var3" == y ]
 then 
     reboot now
