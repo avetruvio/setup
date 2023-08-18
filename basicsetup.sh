@@ -85,20 +85,48 @@ fi
 
 #dotfiles attempt 1
 #install configs from github
-echo "installing config"
-rm .bashrc
-rm .profile
+#echo "installing config"
+#rm .bashrc
+#rm .profile
 
-dotfiles() {
-    /usr/bin/git --git-dir="$HOME"/.dotfiles/ --work-tree="$HOME"
-
-}
-
-
+#dotfiles() {
+#    /usr/bin/git --git-dir="$HOME"/.dotfiles/ --work-tree="$HOME"
+#
+#}
 
 #dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME '
-dotfiles clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
+#dotfiles clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
+#dotfiles checkout
+#dotfiles config --local status.showUntrackedFiles no
+
+
+
+#dotfiles attempt 2
+
+echo "installing config"
+
+# Remove the existing .bashrc and .profile files if necessary
+rm -f ~/.bashrc
+rm -f ~/.profile
+
+# Define the 'dotfiles' alias
+alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
+# Clone the dotfiles into a bare repository
+/usr/bin/git clone --bare https://github.com/avetruvio/config.git $HOME/.dotfiles
+
+# Checkout the actual files in your home directory
 dotfiles checkout
+
+# If the checkout command produces an error due to pre-existing files,
+# the script will remove the conflicting files and re-run the checkout command
+if [ $? != 0 ]; then
+  echo "Removing pre-existing dot files."
+  dotfiles checkout 2>&1 | egrep "\s+\." | awk {'print $1'} | xargs -I{} rm -f {}
+  dotfiles checkout
+fi
+
+# Set the flag showUntrackedFiles to no on this specific (local) repository
 dotfiles config --local status.showUntrackedFiles no
 
 
