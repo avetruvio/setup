@@ -59,7 +59,7 @@ elif [ "$var1" == 5 ]
 #vps 
 then 
     apt install openvpn 
-elif [ "$var1" == 0]
+elif [ "$var1" == 0 ]
 #just update aind install packages default to system
 then
     apt update -y
@@ -101,6 +101,9 @@ whoami
 
 echo "all info needed for ssh configuration is stored in the file in the home dir called host-ini-info"
 scp host-ini-info amber@149.56.98.27:/host-config-files/
+
+
+
 if [ "$var3" == y ]
 then 
     reboot now
