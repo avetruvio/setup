@@ -21,7 +21,7 @@ rm -f ~/.profile
 alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
 
 # Clone the dotfiles into a bare repository
-/usr/bin/git clone --bare https://github.com/avetruvio/config.git $HOME/.dotfiles
+/usr/bin/git clone --bare https://github.com/avetruvio/config.git "$HOME"/.dotfiles
 
 # Checkout the actual files in your home directory
 dotfiles checkout
@@ -30,7 +30,7 @@ dotfiles checkout
 # the script will remove the conflicting files and re-run the checkout command
 if [ $? != 0 ]; then
   echo "Removing pre-existing dot files."
-  dotfiles checkout 2>&1 | egrep "\s+\." | awk {'print $1'} | xargs -I{} rm -f {}
+  dotfiles checkout 2>&1 | grep -e "\s+\." | awk {'print $1'} | xargs -I{} rm -f {}
   dotfiles checkout
 fi
 
@@ -112,10 +112,10 @@ fi
 #install configs from github
 #echo "installing config"
 
-#alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME '
-#dotfiles clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
-#dotfiles checkout
-#dotfiles config --local status.showUntrackedFiles no
+alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME '
+dotfiles clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
+dotfiles checkout
+dotfiles config --local status.showUntrackedFiles no
 
 #dotfiles attempt 1
 #install configs from github
@@ -129,9 +129,9 @@ fi
 #}
 
 #dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME '
-#dotfiles clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
-#dotfiles checkout
-#dotfiles config --local status.showUntrackedFiles no
+/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME  clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
+/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME  checkout
+/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME  config --local status.showUntrackedFiles no
 
 
 
