@@ -1,168 +1,154 @@
-#!/usr/bin/env bash 
-#Exits script on error or undefined variable 
+#!/usr/bin/env bash
 set -euo pipefail
-#Check if running as sudo
-if [ $EUID == 0 ]
-then
-    echo "standby"
-    sleep 2
+
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run as root (e.g., sudo $0)"
+    exit 1
+fi
+
+DEFAULT_USER="${SUDO_USER:-root}"
+read -r -p "Enter username for dotfiles config [${DEFAULT_USER}]: " target_user
+target_user="${target_user:-$DEFAULT_USER}"
+
+if ! id "$target_user" &>/dev/null; then
+    echo "Error: user '$target_user' does not exist."
+    exit 1
+fi
+
+target_home="$(getent passwd "$target_user" | cut -d: -f6)"
+
+echo ""
+echo "Select install type (0-5):"
+echo "  0 - Update only (no role-specific packages)"
+echo "  1 - Headless server"
+echo "  2 - VPN headless server"
+echo "  3 - Netbook (i3 desktop)"
+echo "  4 - Desktop (i3 desktop)"
+echo "  5 - VPS (OpenVPN)"
+read -r -n 1 -p "Choice [0-5]: " install_type
+echo ""
+
+read -r -n 1 -p "Install Tailscale? (y/n): " install_tailscale
+echo ""
+
+tailscale_authkey=""
+if [[ "$install_tailscale" =~ ^[Yy]$ ]]; then
+    read -r -s -p "Enter Tailscale auth key (leave blank to skip): " tailscale_authkey
+    echo ""
+fi
+
+read -r -n 1 -p "Reboot upon completion? (y/n): " do_reboot
+echo ""
+
+echo "Beginning setup, please stand by..."
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y openssh-server tmux wget git curl software-properties-common
+
+install_i3_desktop() {
+    add-apt-repository -y ppa:vantuz/cool-retro-term
+    apt-get update -y
+    apt-get install -y i3 i3lock lightdm cool-retro-term compton \
+        xscreensaver xscreensaver-data xscreensaver-data-extra
+}
+
+case "$install_type" in
+    0)
+        echo "Update-only mode selected; skipping role-specific packages."
+        ;;
+    1)
+        apt-get install -y easyrsa arp-scan
+        ;;
+    2)
+        apt-get install -y openvpn easyrsa arp-scan
+        ;;
+    3|4)
+        install_i3_desktop
+        ;;
+    5)
+        apt-get install -y openvpn
+        ;;
+    *)
+        echo "Invalid install type '$install_type'; skipping role-specific packages."
+        ;;
+esac
+
+if [[ "$install_tailscale" =~ ^[Yy]$ ]]; then
+    # shellcheck source=/dev/null
+    source /etc/os-release
+    distro_id="${ID:-ubuntu}"
+    codename="${VERSION_CODENAME:-focal}"
+    curl -fsSL "https://pkgs.tailscale.com/stable/${distro_id}/${codename}.noarmor.gpg" \
+        | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+    curl -fsSL "https://pkgs.tailscale.com/stable/${distro_id}/${codename}.tailscale-keyring.list" \
+        | tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+    apt-get update -y
+    apt-get install -y tailscale
 else
-    echo "dotfile install"
-    
-    
-
-echo "installing config"
-
-# Remove the existing .bashrc and .profile files if necessary
-rm -f ~/.bashrc
-rm -f ~/.profile
-
-# Define the 'dotfiles' alias
-alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
-
-# Clone the dotfiles into a bare repository
-/usr/bin/git clone --bare https://github.com/avetruvio/config.git "$HOME"/.dotfiles
-
-# Checkout the actual files in your home directory
-dotfiles checkout
-
-# If the checkout command produces an error due to pre-existing files,
-# the script will remove the conflicting files and re-run the checkout command
-if [ $? != 0 ]; then
-  echo "Removing pre-existing dot files."
-  dotfiles checkout 2>&1 | grep -e "\s+\." | awk {'print $1'} | xargs -I{} rm -f {}
-  dotfiles checkout
+    echo "Tailscale install bypassed, continuing..."
 fi
 
-# Set the flag showUntrackedFiles to no on this specific (local) repository
-dotfiles config --local status.showUntrackedFiles no
-echo "dotfile install successfull"    
-    
-    exit 2
-fi
-#define user for config install
-echo "please enter username for config"
-echo" "
-read -r var4 
+install_dotfiles() {
+    local user="$1"
+    local home_dir="$2"
+    local dotfiles_dir="${home_dir}/.dotfiles"
 
-#define variables
-echo "number 1-5 based on the type of install"
-echo "0-5 0 is just update, no configuration, 1 is headless server, 2 is vpn headless server, 3 is netbook, 4 is desktop, 5 is vps"
-#var 1 is install reference
-read -r -n 1 var1
-echo " " 
-echo "install tailscale y or n"
-#var 2 is installing tail scale
-read -r -n 1 var2
-echo " "
-echo "reboot upon completion?"
-echo "Y or N"
-#var 3 is for autoreboot upon script completion
-read -r -n 1 var3
-echo " "
-#inistal system stup, bisic tools and full update
-echo "begenning setup standby" 
-apt -y update
-apt -y upgrade
-# install utils
-apt -y install openssh-server tmux wget git curl software-properties-common
-#ssh pubkey pull
-echo pulling ssh keys
-#wget 
-#this is where it dynamicizes from the basic install
-if [ "$var1" == 1 ]  
-#headless server
-then 
-    apt install -y easyrsa arp-scan
-elif [ "$var1" == 2 ]
-then 
-    apt install -y openvpnheadless server easyrsa arp-scan
-elif [ "$var1" == 3 ]
-#netbook
-then 
-    add-apt-repository ppa:vantuz/cool-retro-term
-    apt update
-    apt install -y i3 i3lock lightdm cool-retro-term compton xscreensaver xscreensaver-data xscreensaver-data-extra
-elif [ "$var1" == 4 ]
-#desktop
-then 
-    add-apt-repository ppa:vantuz/cool-retro-term
-    apt update
-    apt install -y i3 i3lock lightdm cool-retro-term compton xscreensaver xscreensaver-data xscreensaver-data-extra 
-elif [ "$var1" == 5 ]
-#vps 
-then 
-    apt install openvpn 
-elif [ "$var1" == 0 ]
-#just update aind install packages default to system
-then
-    apt update -y
-    apt upgrade -y
-fi
-#install tailscale segment 
-if [ "$var2" == y ]
-then
-curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/focal.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
-curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/focal.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
-apt update
-apt install tailscale
-else
-echo tailscale install bypassed, continuing 
-fi
-#install configs from github
-#echo "installing config"
+    echo "Installing dotfiles for ${user} in ${home_dir}..."
 
-alias dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME '
-dotfiles clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
-dotfiles checkout
-dotfiles config --local status.showUntrackedFiles no
+    if [ -d "$dotfiles_dir" ]; then
+        echo "Dotfiles directory ${dotfiles_dir} already exists; skipping clone."
+        return 0
+    fi
 
-#dotfiles attempt 1
-#install configs from github
-#echo "installing config"
-#rm .bashrc
-#rm .profile
+    sudo -u "$user" /usr/bin/git clone --bare https://github.com/avetruvio/config.git "$dotfiles_dir"
 
-#dotfiles() {
-#    /usr/bin/git --git-dir="$HOME"/.dotfiles/ --work-tree="$HOME"
-#
-#}
+    local git_cmd=(sudo -u "$user" /usr/bin/git --git-dir="$dotfiles_dir" --work-tree="$home_dir")
 
-#dotfiles='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME '
-/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME  clone --bare https://github.com/avetruvio/config.git ~/.dotfiles
-/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME  checkout
-/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME  config --local status.showUntrackedFiles no
+    if ! "${git_cmd[@]}" checkout 2>/dev/null; then
+        echo "Removing conflicting pre-existing dotfiles..."
+        "${git_cmd[@]}" checkout 2>&1 \
+            | grep -E "^\s+\." \
+            | awk '{print $1}' \
+            | xargs -r -I{} rm -f "${home_dir}/{}"
+        "${git_cmd[@]}" checkout
+    fi
 
+    "${git_cmd[@]}" config --local status.showUntrackedFiles no
+    echo "Dotfiles install successful."
+}
 
+install_dotfiles "$target_user" "$target_home"
 
-#dotfiles attempt 2
-#needs to be finished later, gonna be a pain to do 
+apt-get autoremove -y
 
-
-#remove any excess packages
-apt autoremove -y 
-
-#extra info for making ssh configs eaiser
-sleep 3
+info_file="${target_home}/host-ini-info"
 {
-echo "$HOSTNAME" 
-ip a | grep "scope global"
-echo "Hostanme"
-whoami
-} >> host-ini-info
+    echo "$HOSTNAME"
+    ip a | grep "scope global" || true
+    echo "Hostname: $HOSTNAME"
+    echo "User: $target_user"
+} >> "$info_file"
+chown "${target_user}:${target_user}" "$info_file"
 
-echo "all info needed for ssh configuration is stored in the file in the home dir called host-ini-info"
-scp host-ini-info amber@149.56.98.27:/host-config-files/
+echo "Host info stored in ${info_file}."
+read -r -p "SCP host-ini-info to central server? Enter destination (e.g. user@host:/path/) or leave blank to skip: " scp_dest
+if [ -n "$scp_dest" ]; then
+    scp "$info_file" "$scp_dest" || echo "Warning: scp to ${scp_dest} failed."
+fi
 
+if [[ "$install_tailscale" =~ ^[Yy]$ ]]; then
+    if [ -n "$tailscale_authkey" ]; then
+        echo "Authenticating Tailscale..."
+        tailscale up --authkey="$tailscale_authkey"
+    else
+        echo "Tailscale installed; run 'sudo tailscale up' to authenticate."
+    fi
+fi
 
-
-if [ "$var3" == y ]
-then 
-    echo "Setup Complete, Rebooting"
+if [[ "$do_reboot" =~ ^[Yy]$ ]]; then
+    echo "Setup Complete. Rebooting in 7 seconds..."
     sleep 7
     reboot now
 else
-echo "Setup Complete" 
-fi 
-#script is written by Avitruvio
-
+    echo "Setup Complete."
+fi
