@@ -8,6 +8,14 @@ Linux box setup — a standardized install script for VMs and machines to get ba
 wget https://raw.githubusercontent.com/avetruvio/setup/main/basicsetup.sh && chmod +x basicsetup.sh && sudo ./basicsetup.sh
 ```
 
+### Supported Package Managers
+Automatically detects the distro via `/etc/os-release` and selects the matching package manager:
+- `apt` (Debian / Ubuntu)
+- `dnf` / `yum` (Fedora / RHEL / CentOS)
+- `pacman` (Arch / Manjaro)
+- `zypper` (openSUSE)
+- `apk` (Alpine)
+
 ### Install Modes
 - `0` — Update only (no role-specific packages)
 - `1` — Headless server (`easyrsa`, `arp-scan`)

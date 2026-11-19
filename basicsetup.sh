@@ -6,6 +6,83 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+detect_distro() {
+    DISTRO_ID="unknown"
+    if [ -r /etc/os-release ]; then
+        # shellcheck source=/dev/null
+        source /etc/os-release
+        DISTRO_ID="${ID:-unknown}"
+    fi
+
+    if command -v apt-get &>/dev/null; then
+        PKG_MGR="apt"
+    elif command -v dnf &>/dev/null; then
+        PKG_MGR="dnf"
+    elif command -v yum &>/dev/null; then
+        PKG_MGR="yum"
+    elif command -v pacman &>/dev/null; then
+        PKG_MGR="pacman"
+    elif command -v zypper &>/dev/null; then
+        PKG_MGR="zypper"
+    elif command -v apk &>/dev/null; then
+        PKG_MGR="apk"
+    else
+        echo "Error: No supported package manager found (detected distro: ${DISTRO_ID})."
+        exit 1
+    fi
+
+    echo "Detected distro: ${DISTRO_ID} (package manager: ${PKG_MGR})"
+}
+
+pkg_update() {
+    case "$PKG_MGR" in
+        apt)
+            apt-get update -y
+            apt-get upgrade -y
+            ;;
+        dnf)    dnf upgrade -y ;;
+        yum)    yum update -y ;;
+        pacman) pacman -Syu --noconfirm ;;
+        zypper)
+            zypper refresh
+            zypper update -y
+            ;;
+        apk)
+            apk update
+            apk upgrade
+            ;;
+    esac
+}
+
+pkg_install() {
+    case "$PKG_MGR" in
+        apt)    apt-get install -y "$@" ;;
+        dnf)    dnf install -y "$@" ;;
+        yum)    yum install -y "$@" ;;
+        pacman) pacman -S --noconfirm --needed "$@" ;;
+        zypper) zypper install -y "$@" ;;
+        apk)    apk add --no-cache "$@" ;;
+    esac
+}
+
+pkg_cleanup() {
+    case "$PKG_MGR" in
+        apt) apt-get autoremove -y ;;
+        dnf) dnf autoremove -y ;;
+        yum) yum autoremove -y ;;
+        pacman)
+            local orphans
+            orphans="$(pacman -Qtdq 2>/dev/null || true)"
+            if [ -n "$orphans" ]; then
+                echo "$orphans" | xargs pacman -Rns --noconfirm
+            fi
+            ;;
+        zypper|apk) ;;
+    esac
+}
+
+detect_distro
+
 DEFAULT_USER="${SUDO_USER:-root}"
 read -r -p "Enter username for dotfiles config [${DEFAULT_USER}]: " target_user
 target_user="${target_user:-$DEFAULT_USER}"
@@ -41,15 +118,37 @@ read -r -n 1 -p "Reboot upon completion? (y/n): " do_reboot
 echo ""
 
 echo "Beginning setup, please stand by..."
-apt-get update -y
-apt-get upgrade -y
-apt-get install -y openssh-server tmux wget git curl software-properties-common
+pkg_update
+
+case "$PKG_MGR" in
+    apt)
+        pkg_install openssh-server tmux wget git curl software-properties-common
+        easyrsa_pkg="easyrsa"
+        ;;
+    dnf|yum)
+        pkg_install openssh-server tmux wget git curl
+        easyrsa_pkg="easy-rsa"
+        ;;
+    pacman|zypper|apk)
+        pkg_install openssh tmux wget git curl
+        easyrsa_pkg="easy-rsa"
+        ;;
+esac
 
 install_i3_desktop() {
-    add-apt-repository -y ppa:vantuz/cool-retro-term
-    apt-get update -y
-    apt-get install -y i3 i3lock lightdm cool-retro-term compton \
-        xscreensaver xscreensaver-data xscreensaver-data-extra
+    case "$PKG_MGR" in
+        apt)
+            if [ "$DISTRO_ID" = "ubuntu" ] && command -v add-apt-repository &>/dev/null; then
+                add-apt-repository -y ppa:vantuz/cool-retro-term || true
+                apt-get update -y
+            fi
+            pkg_install i3 i3lock lightdm cool-retro-term compton \
+                xscreensaver xscreensaver-data xscreensaver-data-extra
+            ;;
+        *)
+            pkg_install i3 i3lock lightdm cool-retro-term picom xscreensaver
+            ;;
+    esac
 }
 
 case "$install_type" in
@@ -57,16 +156,16 @@ case "$install_type" in
         echo "Update-only mode selected; skipping role-specific packages."
         ;;
     1)
-        apt-get install -y easyrsa arp-scan
+        pkg_install "$easyrsa_pkg" arp-scan
         ;;
     2)
-        apt-get install -y openvpn easyrsa arp-scan
+        pkg_install openvpn "$easyrsa_pkg" arp-scan
         ;;
     3|4)
         install_i3_desktop
         ;;
     5)
-        apt-get install -y openvpn
+        pkg_install openvpn
         ;;
     *)
         echo "Invalid install type '$install_type'; skipping role-specific packages."
@@ -74,16 +173,7 @@ case "$install_type" in
 esac
 
 if [[ "$install_tailscale" =~ ^[Yy]$ ]]; then
-    # shellcheck source=/dev/null
-    source /etc/os-release
-    distro_id="${ID:-ubuntu}"
-    codename="${VERSION_CODENAME:-focal}"
-    curl -fsSL "https://pkgs.tailscale.com/stable/${distro_id}/${codename}.noarmor.gpg" \
-        | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
-    curl -fsSL "https://pkgs.tailscale.com/stable/${distro_id}/${codename}.tailscale-keyring.list" \
-        | tee /etc/apt/sources.list.d/tailscale.list >/dev/null
-    apt-get update -y
-    apt-get install -y tailscale
+    curl -fsSL https://tailscale.com/install.sh | sh
 else
     echo "Tailscale install bypassed, continuing..."
 fi
@@ -119,7 +209,7 @@ install_dotfiles() {
 
 install_dotfiles "$target_user" "$target_home"
 
-apt-get autoremove -y
+pkg_cleanup
 
 info_file="${target_home}/host-ini-info"
 {
