@@ -105,8 +105,8 @@ show_install_details() {
     echo ""
     echo "Role-specific packages:"
     echo "  0 - Update only:         No extra role-specific packages"
-    echo "  1 - Headless server:     easyrsa/easy-rsa, arp-scan"
-    echo "  2 - VPN headless server: openvpn, easyrsa/easy-rsa, arp-scan"
+    echo "  1 - Headless server:     arp-scan"
+    echo "  2 - VPN headless server: openvpn, arp-scan"
     echo "  3 - Netbook (i3):        i3, i3lock, lightdm, cool-retro-term, compton/picom, xscreensaver"
     echo "  4 - Desktop (i3):        Same as Netbook (i3 desktop stack)"
     echo "  5 - VPS:                 openvpn"
@@ -152,15 +152,12 @@ pkg_update
 case "$PKG_MGR" in
     apt)
         pkg_install openssh-server tmux wget git curl software-properties-common
-        easyrsa_pkg="easyrsa"
         ;;
     dnf|yum)
         pkg_install openssh-server tmux wget git curl
-        easyrsa_pkg="easy-rsa"
         ;;
     pacman|zypper|apk)
         pkg_install openssh tmux wget git curl
-        easyrsa_pkg="easy-rsa"
         ;;
 esac
 
@@ -185,10 +182,10 @@ case "$install_type" in
         echo "Update-only mode selected; skipping role-specific packages."
         ;;
     1)
-        pkg_install "$easyrsa_pkg" arp-scan
+        pkg_install arp-scan
         ;;
     2)
-        pkg_install openvpn "$easyrsa_pkg" arp-scan
+        pkg_install openvpn arp-scan
         ;;
     3|4)
         install_i3_desktop

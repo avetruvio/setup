@@ -19,14 +19,17 @@ Automatically detects the distro via `/etc/os-release` and selects the matching 
 ### Install Modes
 Enter `0`–`5` at the prompt, or press `?` to view the full package breakdown for each mode before choosing:
 - `0` — Update only (no role-specific packages)
-- `1` — Headless server (`easyrsa` / `easy-rsa`, `arp-scan`)
-- `2` — VPN headless server (`openvpn`, `easyrsa` / `easy-rsa`, `arp-scan`)
+- `1` — Headless server (`arp-scan`)
+- `2` — VPN headless server (`openvpn`, `arp-scan`)
 - `3` — Netbook (`i3`, `i3lock`, `lightdm`, `cool-retro-term`, `compton` / `picom`, `xscreensaver`)
 - `4` — Desktop (same `i3` desktop stack)
 - `5` — VPS (`openvpn`)
 
 ### Tailscale
 If you opt to install Tailscale, the script prompts for an optional Tailscale auth key at the start and runs `tailscale up --authkey=...` at the end of setup (leave the key blank to authenticate manually later with `sudo tailscale up`).
+
+### Cleanup
+After all updates and installations finish, unused/orphaned packages are automatically removed (`apt-get autoremove -y`, `dnf autoremove -y`, `yum autoremove -y`, or `pacman -Rns`).
 
 ## To Do
 1. Automate adding VMs to an SSH config
