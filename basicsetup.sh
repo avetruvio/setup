@@ -94,16 +94,45 @@ fi
 
 target_home="$(getent passwd "$target_user" | cut -d: -f6)"
 
-echo ""
-echo "Select install type (0-5):"
-echo "  0 - Update only (no role-specific packages)"
-echo "  1 - Headless server"
-echo "  2 - VPN headless server"
-echo "  3 - Netbook (i3 desktop)"
-echo "  4 - Desktop (i3 desktop)"
-echo "  5 - VPS (OpenVPN)"
-read -r -n 1 -p "Choice [0-5]: " install_type
-echo ""
+show_install_details() {
+    echo ""
+    echo "=== Install Selection Details ==="
+    echo "Base (included in all modes):"
+    echo "  - System update/upgrade"
+    echo "  - openssh-server (or openssh), tmux, wget, git, curl"
+    echo "  - software-properties-common (apt only)"
+    echo "  - Dotfiles from https://github.com/avetruvio/config.git"
+    echo ""
+    echo "Role-specific packages:"
+    echo "  0 - Update only:         No extra role-specific packages"
+    echo "  1 - Headless server:     easyrsa/easy-rsa, arp-scan"
+    echo "  2 - VPN headless server: openvpn, easyrsa/easy-rsa, arp-scan"
+    echo "  3 - Netbook (i3):        i3, i3lock, lightdm, cool-retro-term, compton/picom, xscreensaver"
+    echo "  4 - Desktop (i3):        Same as Netbook (i3 desktop stack)"
+    echo "  5 - VPS:                 openvpn"
+    echo "================================="
+    echo ""
+}
+
+while true; do
+    echo ""
+    echo "Select install type (0-5, or ? for package details):"
+    echo "  0 - Update only (no role-specific packages)"
+    echo "  1 - Headless server"
+    echo "  2 - VPN headless server"
+    echo "  3 - Netbook (i3 desktop)"
+    echo "  4 - Desktop (i3 desktop)"
+    echo "  5 - VPS (OpenVPN)"
+    echo "  ? - Show detailed package list for each selection"
+    read -r -n 1 -p "Choice [0-5, ?]: " install_type
+    echo ""
+
+    case "$install_type" in
+        [0-5]) break ;;
+        \?)    show_install_details ;;
+        *)     echo "Invalid choice '$install_type'. Please enter 0-5 or ?." ;;
+    esac
+done
 
 read -r -n 1 -p "Install Tailscale? (y/n): " install_tailscale
 echo ""

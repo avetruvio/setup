@@ -17,10 +17,11 @@ Automatically detects the distro via `/etc/os-release` and selects the matching 
 - `apk` (Alpine)
 
 ### Install Modes
+Enter `0`–`5` at the prompt, or press `?` to view the full package breakdown for each mode before choosing:
 - `0` — Update only (no role-specific packages)
-- `1` — Headless server (`easyrsa`, `arp-scan`)
-- `2` — VPN headless server (`openvpn`, `easyrsa`, `arp-scan`)
-- `3` — Netbook (`i3`, `i3lock`, `lightdm`, `cool-retro-term`, `compton`, `xscreensaver`)
+- `1` — Headless server (`easyrsa` / `easy-rsa`, `arp-scan`)
+- `2` — VPN headless server (`openvpn`, `easyrsa` / `easy-rsa`, `arp-scan`)
+- `3` — Netbook (`i3`, `i3lock`, `lightdm`, `cool-retro-term`, `compton` / `picom`, `xscreensaver`)
 - `4` — Desktop (same `i3` desktop stack)
 - `5` — VPS (`openvpn`)
 
