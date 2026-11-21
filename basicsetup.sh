@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
 if [ "$EUID" -ne 0 ]; then
     echo "Please run as root (e.g., sudo $0)"
     exit 1
@@ -262,9 +264,15 @@ if [[ "$install_tailscale" =~ ^[Yy]$ ]]; then
 fi
 
 if [[ "$do_reboot" =~ ^[Yy]$ ]]; then
-    echo "Setup Complete. Rebooting in 7 seconds..."
-    sleep 7
+    echo "Setup Complete."
+    for i in {7..1}; do
+        printf "\rRebooting in %d second(s)... (Ctrl+C to cancel) " "$i"
+        sleep 1
+    done
+    echo ""
+    rm -f -- "$SCRIPT_PATH"
     reboot now
 else
+    rm -f -- "$SCRIPT_PATH"
     echo "Setup Complete."
 fi

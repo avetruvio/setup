@@ -28,8 +28,8 @@ Enter `0`–`5` at the prompt, or press `?` to view the full package breakdown f
 ### Tailscale
 If you opt to install Tailscale, the script prompts for an optional Tailscale auth key at the start and runs `tailscale up --authkey=...` at the end of setup (leave the key blank to authenticate manually later with `sudo tailscale up`).
 
-### Cleanup
-After all updates and installations finish, unused/orphaned packages are automatically removed (`apt-get autoremove -y`, `dnf autoremove -y`, `yum autoremove -y`, or `pacman -Rns`).
+### Cleanup & Reboot
+After all updates and installations finish, unused/orphaned packages are automatically removed (`apt-get autoremove -y`, `dnf autoremove -y`, `yum autoremove -y`, or `pacman -Rns`). Upon completion, the script deletes itself (`rm -f`), and if you opted to reboot, it displays a 7-second countdown (cancelable with `Ctrl+C`) before rebooting.
 
 ## To Do
 1. Automate adding VMs to an SSH config
