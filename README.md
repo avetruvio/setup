@@ -29,7 +29,7 @@ All modes install base essentials (`openssh-server`/`openssh`, `tmux`, `wget`, `
 If you opt to install Tailscale, the script prompts for an optional Tailscale auth key at the start and runs `tailscale up --authkey=...` at the end of setup (leave the key blank to authenticate manually later with `sudo tailscale up`).
 
 ### Cleanup & Reboot
-After all updates and installations finish, unused/orphaned packages are automatically removed (`apt-get autoremove -y`, `dnf autoremove -y`, `yum autoremove -y`, or `pacman -Rns`). Upon completion, the script deletes itself (`rm -f`), and if you opted to reboot, it displays a 7-second countdown (cancelable with `Ctrl+C`) before rebooting.
+After all updates and installations finish, unused/orphaned packages are automatically removed (`apt-get autoremove -y`, `dnf autoremove -y`, `yum autoremove -y`, or `pacman -Rns`). System info (timestamp, hostname, distro, user, and global IP addresses) is appended to `~/host-ini-info` (created if it doesn't exist), with an optional `scp` prompt. Upon completion, the script deletes itself (`rm -f`), and if you opted to reboot, it displays a 7-second countdown (cancelable with `Ctrl+C`) before rebooting.
 
 ## To Do
 1. Automate adding VMs to an SSH config

@@ -250,11 +250,15 @@ install_dotfiles "$target_user" "$target_home"
 pkg_cleanup
 
 info_file="${target_home}/host-ini-info"
+mkdir -p "$target_home"
+touch "$info_file"
 {
-    echo "$HOSTNAME"
-    ip a | grep "scope global" || true
+    echo "=== $(date -u '+%Y-%m-%d %H:%M:%S UTC') ==="
     echo "Hostname: $HOSTNAME"
+    echo "Distro: ${DISTRO_ID} (${PKG_MGR})"
     echo "User: $target_user"
+    ip a | grep "scope global" || true
+    echo ""
 } >> "$info_file"
 chown "${target_user}:${target_user}" "$info_file"
 
