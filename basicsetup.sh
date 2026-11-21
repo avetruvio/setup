@@ -101,7 +101,7 @@ show_install_details() {
     echo "=== Install Selection Details ==="
     echo "Base (included in all modes):"
     echo "  - System update/upgrade"
-    echo "  - openssh-server (or openssh), tmux, wget, git, curl"
+    echo "  - openssh-server (or openssh), tmux, wget, git, curl, vim"
     echo "  - software-properties-common (apt only)"
     echo "  - Dotfiles from https://github.com/avetruvio/config.git"
     echo ""
@@ -109,7 +109,7 @@ show_install_details() {
     echo "  0 - Update only:         No extra role-specific packages"
     echo "  1 - Headless server:     arp-scan"
     echo "  2 - VPN headless server: openvpn, arp-scan"
-    echo "  3 - Netbook (i3):        i3, i3lock, lightdm, cool-retro-term, compton/picom, xscreensaver"
+    echo "  3 - Netbook (i3):        i3/i3wm, i3lock, lightdm, cool-retro-term (non-Alpine), picom/compton, xscreensaver"
     echo "  4 - Desktop (i3):        Same as Netbook (i3 desktop stack)"
     echo "  5 - VPS:                 openvpn"
     echo "================================="
@@ -153,13 +153,16 @@ pkg_update
 
 case "$PKG_MGR" in
     apt)
-        pkg_install openssh-server tmux wget git curl software-properties-common
+        pkg_install openssh-server tmux wget git curl vim software-properties-common
         ;;
     dnf|yum)
-        pkg_install openssh-server tmux wget git curl
+        if [ "$DISTRO_ID" != "fedora" ]; then
+            pkg_install epel-release || true
+        fi
+        pkg_install openssh-server tmux wget git curl vim
         ;;
     pacman|zypper|apk)
-        pkg_install openssh tmux wget git curl
+        pkg_install openssh tmux wget git curl vim
         ;;
 esac
 
@@ -170,11 +173,18 @@ install_i3_desktop() {
                 add-apt-repository -y ppa:vantuz/cool-retro-term || true
                 apt-get update -y
             fi
-            pkg_install i3 i3lock lightdm cool-retro-term compton \
+            local compositor_pkg="compton"
+            if apt-cache show picom &>/dev/null; then
+                compositor_pkg="picom"
+            fi
+            pkg_install i3 i3lock lightdm cool-retro-term "$compositor_pkg" \
                 xscreensaver xscreensaver-data xscreensaver-data-extra
             ;;
-        *)
+        dnf|yum|pacman|zypper)
             pkg_install i3 i3lock lightdm cool-retro-term picom xscreensaver
+            ;;
+        apk)
+            pkg_install i3wm i3lock lightdm picom xscreensaver
             ;;
     esac
 }
