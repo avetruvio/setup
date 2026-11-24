@@ -4,9 +4,17 @@ Linux box setup — a standardized install script for VMs and machines to get ba
 
 ## Usage
 
+Interactive:
 ```bash
 wget https://raw.githubusercontent.com/avetruvio/setup/main/basicsetup.sh && chmod +x basicsetup.sh && sudo ./basicsetup.sh
 ```
+> On a fresh Alpine Linux install, install `bash` first as root: `apk add --no-cache bash`
+
+Unattended / CLI flags (e.g. for `cloud-init` or automation):
+```bash
+sudo ./basicsetup.sh -u myuser -t 1 --tailscale --tailscale-key tskey-... --no-reboot -y
+```
+Run `./basicsetup.sh --help` for all flags (`-u/--user` [defaults to the invoking user], `-t/--type`, `--tailscale`, `--no-tailscale`, `--tailscale-key`, `--reboot`, `--no-reboot`, `--scp-dest`, `-y/--yes`).
 
 ### Supported Package Managers
 Automatically detects the distro via `/etc/os-release` and selects the matching package manager:
@@ -14,14 +22,14 @@ Automatically detects the distro via `/etc/os-release` and selects the matching 
 - `dnf` / `yum` (Fedora / RHEL / CentOS)
 - `pacman` (Arch / Manjaro)
 - `zypper` (openSUSE)
-- `apk` (Alpine)
+- `apk` (Alpine — requires `bash` pre-installed; automatically enables the `community` repo in `/etc/apk/repositories`)
 
 ### Install Modes
-All modes install base essentials (`openssh-server`/`openssh`, `tmux`, `wget`, `git`, `curl`, `vim`) and dotfiles. Enter `0`–`5` at the prompt, or press `?` to view the full package breakdown for each mode before choosing:
+All modes install base essentials (`openssh-server`/`openssh`, `sudo`, `tmux`, `wget`, `git`, `curl`, `vim`), Ubuntu-only extras (`software-properties-common`), and dotfiles. Enter `0`–`5` at the prompt, or press `?` to view the full package breakdown for each mode before choosing:
 - `0` — Update only (no role-specific packages)
 - `1` — Headless server (`arp-scan`)
 - `2` — VPN headless server (`openvpn`, `arp-scan`)
-- `3` — Netbook (`i3`/`i3wm`, `i3lock`, `lightdm`, `cool-retro-term` [non-Alpine], `picom`/`compton`, `xscreensaver`)
+- `3` — Netbook (`i3`/`i3wm`, `i3lock`, `lightdm`, `lightdm-gtk-greeter`, `cool-retro-term` [non-Alpine; best-effort on RHEL-family], `picom`/`compton`, `xscreensaver`)
 - `4` — Desktop (same `i3` desktop stack)
 - `5` — VPS (`openvpn`)
 
