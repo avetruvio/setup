@@ -181,7 +181,7 @@ show_install_details() {
     echo "=== Install Selection Details ==="
     echo "Base (included in all modes):"
     echo "  - System update/upgrade"
-    echo "  - openssh-server (or openssh), sudo, tmux, wget, git, curl, vim, ansible"
+    echo "  - openssh-server (or openssh), sudo, tmux, wget, git, curl, vim"
     echo "  - software-properties-common (Ubuntu only)"
     echo "  - Dotfiles from https://github.com/avetruvio/config.git"
     echo ""
@@ -250,7 +250,7 @@ pkg_update
 
 case "$PKG_MGR" in
     apt)
-        pkg_install openssh-server sudo tmux wget git curl vim ansible
+        pkg_install openssh-server sudo tmux wget git curl vim
         if [ "$DISTRO_ID" = "ubuntu" ]; then
             pkg_install software-properties-common
         fi
@@ -260,11 +260,11 @@ case "$PKG_MGR" in
         if [ "$DISTRO_ID" != "fedora" ]; then
             pkg_install epel-release || true
         fi
-        pkg_install openssh-server openssh-clients sudo tmux wget git curl vim ansible
+        pkg_install openssh-server openssh-clients sudo tmux wget git curl vim
         enable_service sshd
         ;;
     pacman|zypper|apk)
-        pkg_install openssh sudo tmux wget git curl vim ansible
+        pkg_install openssh sudo tmux wget git curl vim
         enable_service sshd
         ;;
 esac
