@@ -14,7 +14,7 @@ Unattended / CLI flags (e.g. for `cloud-init` or automation):
 ```bash
 sudo ./basicsetup.sh -u myuser -t 1 --tailscale --tailscale-key tskey-... --no-reboot -y
 ```
-Run `./basicsetup.sh --help` for all flags (`-u/--user` [defaults to the invoking user], `-t/--type`, `--tailscale`, `--no-tailscale`, `--tailscale-key`, `--reboot`, `--no-reboot`, `--scp-dest`, `-y/--yes`).
+Run `./basicsetup.sh --help` for all flags (`-u/--user` [defaults to the invoking user], `-t/--type`, `--tailscale`, `--no-tailscale`, `--tailscale-key`, `--github-keys`, `--reboot`, `--no-reboot`, `--scp-dest`, `-y/--yes`).
 
 ### Supported Package Managers
 Automatically detects the distro via `/etc/os-release` and selects the matching package manager:
@@ -36,9 +36,8 @@ All modes install base essentials (`openssh-server`/`openssh`, `sudo`, `tmux`, `
 ### Tailscale
 If you opt to install Tailscale, the script prompts for an optional Tailscale auth key at the start and runs `tailscale up --authkey=...` at the end of setup (leave the key blank to authenticate manually later with `sudo tailscale up`).
 
-### Cleanup & Reboot
-After all updates and installations finish, unused/orphaned packages are automatically removed (`apt-get autoremove -y`, `dnf autoremove -y`, `yum autoremove -y`, or `pacman -Rns`). System info (timestamp, hostname, distro, user, and global IP addresses) is appended to `~/host-ini-info` (created if it doesn't exist), with an optional `scp` prompt. Upon completion, the script deletes itself (`rm -f`), and if you opted to reboot, it displays a 7-second countdown (cancelable with `Ctrl+C`) before rebooting.
+### Cleanup, Logging & Reboot
+After all updates and installations finish, unused/orphaned packages are automatically removed (`apt-get autoremove -y`, `dnf autoremove -y`, `yum autoremove -y`, or `pacman -Rns`). Optionally, you can enter a GitHub username (or pass `--github-keys USER`) to import public SSH keys into `~/.ssh/authorized_keys`. System info plus a ready-to-use `~/.ssh/config` snippet are appended to `~/host-ini-info` (created if it doesn't exist), with an optional `scp` prompt. Full setup output is logged to `/var/log/basicsetup.log`. Upon completion, the script deletes itself (`rm -f`), and if you opted to reboot, it displays a 7-second countdown (cancelable with `Ctrl+C`) before rebooting.
 
 ## To Do
-1. Automate adding VMs to an SSH config
-2. Automate central server config sync
+1. Automate central server config sync
