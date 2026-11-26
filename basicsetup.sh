@@ -156,7 +156,7 @@ show_install_details() {
 === Install Selection Details ===
 Base (included in all modes):
   - System update/upgrade
-  - openssh-server (or openssh), sudo, tmux, wget, git, curl, vim
+  - openssh-server (or openssh), sudo, tmux, wget, git, curl, vim, htop, fastfetch (if available in repos)
   - software-properties-common (Ubuntu only)
   - Dotfiles from ${DOTFILES_REPO}
 
@@ -251,7 +251,7 @@ EOF
 }
 
 install_base_packages() {
-    local common_pkgs=(sudo tmux wget git curl vim)
+    local common_pkgs=(sudo tmux wget git curl vim htop)
     case "$PKG_MGR" in
         apt)
             pkg_install openssh-server "${common_pkgs[@]}"
@@ -268,6 +268,8 @@ install_base_packages() {
             enable_service sshd
             ;;
     esac
+
+    pkg_install fastfetch || echo "Warning: fastfetch not available in configured repos, skipping."
 }
 
 install_i3_desktop() {

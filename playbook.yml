@@ -81,7 +81,14 @@
           - git
           - curl
           - vim
+          - htop
         state: present
+
+    - name: Install fastfetch (best-effort across distro versions)
+      ansible.builtin.package:
+        name: fastfetch
+        state: present
+      ignore_errors: true
 
     - name: Install OpenSSH server (Debian/RedHat)
       ansible.builtin.package:
