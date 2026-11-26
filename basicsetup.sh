@@ -369,8 +369,19 @@ install_ssh_keys() {
 write_and_send_host_info() {
     local info_file="${target_home}/host-ini-info"
     local host_name="${HOSTNAME:-$(hostname)}"
-    local primary_ip
+    local primary_ip cpu_model cpu_cores ram_total gpu_info
     primary_ip="$(ip -4 -o addr show scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -n1 || true)"
+    cpu_model="$(awk -F: '/model name|Hardware|Processor/{print $2; exit}' /proc/cpuinfo 2>/dev/null | sed 's/^ *//' || true)"
+    cpu_cores="$(nproc 2>/dev/null || grep -c '^processor' /proc/cpuinfo 2>/dev/null || echo "unknown")"
+    ram_total="$(awk '/MemTotal/{printf "%.2f GiB", $2/1024/1024}' /proc/meminfo 2>/dev/null || echo "unknown")"
+
+    gpu_info=""
+    if command -v nvidia-smi &>/dev/null; then
+        gpu_info="$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || true)"
+    fi
+    if [ -z "$gpu_info" ] && command -v lspci &>/dev/null; then
+        gpu_info="$(lspci 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/^[^:]*: //' || true)"
+    fi
 
     mkdir -p "$target_home"
     touch "$info_file"
@@ -379,6 +390,13 @@ write_and_send_host_info() {
         echo "Hostname: $host_name"
         echo "Distro: ${DISTRO_ID} (${PKG_MGR})"
         echo "User: $target_user"
+        echo "CPU: ${cpu_model:-unknown} (${cpu_cores} cores)"
+        echo "RAM: ${ram_total}"
+        if [ -n "$gpu_info" ]; then
+            while IFS= read -r gpu_line; do
+                [ -n "$gpu_line" ] && echo "GPU: $gpu_line"
+            done <<< "$gpu_info"
+        fi
         ip a | grep "scope global" || true
         echo ""
         echo "# SSH config snippet:"
