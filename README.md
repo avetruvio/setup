@@ -4,7 +4,7 @@ Linux box setup — a standardized install script for VMs and machines to get ba
 
 ## Usage
 
-Interactive:
+Interactive (all prompts are collected upfront before any updates or installs run):
 ```bash
 wget https://raw.githubusercontent.com/avetruvio/setup/main/basicsetup.sh && chmod +x basicsetup.sh && sudo ./basicsetup.sh
 ```
@@ -15,6 +15,13 @@ Unattended / CLI flags (e.g. for `cloud-init` or automation):
 sudo ./basicsetup.sh -u myuser -t 1 --tailscale --tailscale-key tskey-... --no-reboot -y
 ```
 Run `./basicsetup.sh --help` for all flags (`-u/--user` [defaults to the invoking user], `-t/--type`, `--tailscale`, `--no-tailscale`, `--tailscale-key`, `--github-keys`, `--reboot`, `--no-reboot`, `--scp-dest`, `-y/--yes`).
+
+### Ansible Playbook
+An equivalent Ansible playbook is also available in [playbook.yml](playbook.yml):
+```bash
+ansible-playbook -i "host," playbook.yml -e "target_user=myuser install_type=1 install_tailscale=true tailscale_authkey=tskey-... github_keys_user=myghuser do_reboot=false"
+```
+Each managed host's `host-ini-info` is automatically fetched back to `./host-configs/<host>-host-ini-info` on the computer running the playbook (override with `-e host_info_dest=/path`).
 
 ### Supported Package Managers
 Automatically detects the distro via `/etc/os-release` and selects the matching package manager:

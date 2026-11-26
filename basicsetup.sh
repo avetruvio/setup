@@ -237,6 +237,10 @@ EOF
         read -r -p "Import GitHub SSH keys? Enter GitHub username (leave blank to skip): " github_keys_user
     fi
 
+    if [ -z "$scp_dest" ] && [ "$non_interactive" = false ]; then
+        read -r -p "SCP host-ini-info to central server? Enter destination (e.g. user@host:/path/) or leave blank to skip: " scp_dest
+    fi
+
     if [ -z "$do_reboot" ]; then
         if [ "$non_interactive" = true ]; then
             do_reboot="n"
@@ -384,9 +388,6 @@ write_and_send_host_info() {
     chown "${target_user}:$(id -gn "$target_user")" "$info_file"
 
     echo "Host info stored in ${info_file}."
-    if [ -z "$scp_dest" ] && [ "$non_interactive" = false ]; then
-        read -r -p "SCP host-ini-info to central server? Enter destination (e.g. user@host:/path/) or leave blank to skip: " scp_dest
-    fi
     if [ -n "$scp_dest" ]; then
         scp "$info_file" "$scp_dest" || echo "Warning: scp to ${scp_dest} failed."
     fi

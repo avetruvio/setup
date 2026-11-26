@@ -17,3 +17,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           scandir: .
+      - name: Check Ansible playbook syntax
+        run: |
+          pip install --quiet ansible-core
+          ansible-playbook -i "localhost," --syntax-check playbook.yml

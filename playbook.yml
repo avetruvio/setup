@@ -1,0 +1,298 @@
+---
+- name: Linux Box Setup
+  hosts: all
+  become: true
+
+  vars:
+    target_user: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}"
+    install_type: "0"
+    install_tailscale: false
+    tailscale_authkey: ""
+    github_keys_user: ""
+    do_reboot: false
+    dotfiles_repo: "https://github.com/avetruvio/config.git"
+    host_info_dest: "./host-configs"
+
+  tasks:
+    - name: Look up target user home directory
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ target_user }}"
+
+    - name: Set target_home fact
+      ansible.builtin.set_fact:
+        target_home: "{{ ansible_facts.getent_passwd[target_user][4] }}"
+
+    - name: Enable Alpine community repository
+      ansible.builtin.replace:
+        path: /etc/apk/repositories
+        regexp: '^#(.*community)'
+        replace: '\1'
+      when: ansible_pkg_mgr == "apk"
+
+    - name: Update and upgrade apt packages
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+      when: ansible_pkg_mgr == "apt"
+
+    - name: Update and upgrade dnf packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      when: ansible_pkg_mgr == "dnf"
+
+    - name: Update and upgrade yum packages
+      ansible.builtin.yum:
+        name: "*"
+        state: latest
+      when: ansible_pkg_mgr == "yum"
+
+    - name: Update and upgrade pacman packages
+      ansible.builtin.command: pacman -Syu --noconfirm
+      changed_when: true
+      when: ansible_pkg_mgr == "pacman"
+
+    - name: Update and upgrade zypper packages
+      ansible.builtin.command: zypper --non-interactive update
+      changed_when: true
+      when: ansible_pkg_mgr == "zypper"
+
+    - name: Update and upgrade apk packages
+      ansible.builtin.command: apk upgrade --update-cache
+      changed_when: true
+      when: ansible_pkg_mgr == "apk"
+
+    - name: Install EPEL repository on non-Fedora RedHat systems
+      ansible.builtin.package:
+        name: epel-release
+        state: present
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution != "Fedora"
+      ignore_errors: true
+
+    - name: Install common base packages
+      ansible.builtin.package:
+        name:
+          - sudo
+          - tmux
+          - wget
+          - git
+          - curl
+          - vim
+        state: present
+
+    - name: Install OpenSSH server (Debian/RedHat)
+      ansible.builtin.package:
+        name: openssh-server
+        state: present
+      when: ansible_pkg_mgr in ["apt", "dnf", "yum"]
+
+    - name: Install OpenSSH clients (RedHat)
+      ansible.builtin.package:
+        name: openssh-clients
+        state: present
+      when: ansible_pkg_mgr in ["dnf", "yum"]
+
+    - name: Install OpenSSH (Arch/SUSE/Alpine)
+      ansible.builtin.package:
+        name: openssh
+        state: present
+      when: ansible_pkg_mgr in ["pacman", "zypper", "apk"]
+
+    - name: Install Ubuntu-only packages
+      ansible.builtin.package:
+        name: software-properties-common
+        state: present
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Enable and start SSH service
+      ansible.builtin.service:
+        name: "{{ 'ssh' if ansible_pkg_mgr == 'apt' else 'sshd' }}"
+        enabled: true
+        state: started
+
+    - name: Install headless server packages (modes 1 & 2)
+      ansible.builtin.package:
+        name: arp-scan
+        state: present
+      when: install_type | string in ["1", "2"]
+
+    - name: Install OpenVPN (modes 2 & 5)
+      ansible.builtin.package:
+        name: openvpn
+        state: present
+      when: install_type | string in ["2", "5"]
+
+    - name: Install i3 desktop stack (modes 3 & 4)
+      when: install_type | string in ["3", "4"]
+      block:
+        - name: Add cool-retro-term PPA on Ubuntu
+          ansible.builtin.apt_repository:
+            repo: ppa:vantuz/cool-retro-term
+            state: present
+            update_cache: true
+          when: ansible_distribution == "Ubuntu"
+          ignore_errors: true
+
+        - name: Install common i3 desktop packages
+          ansible.builtin.package:
+            name:
+              - "{{ 'i3wm' if ansible_pkg_mgr == 'apk' else 'i3' }}"
+              - i3lock
+              - lightdm
+              - lightdm-gtk-greeter
+              - xscreensaver
+            state: present
+
+        - name: Install apt xscreensaver extras
+          ansible.builtin.package:
+            name:
+              - xscreensaver-data
+              - xscreensaver-data-extra
+            state: present
+          when: ansible_pkg_mgr == "apt"
+
+        - name: Install compositor (picom, fallback to compton on older apt)
+          ansible.builtin.package:
+            name: picom
+            state: present
+          register: picom_result
+          ignore_errors: true
+
+        - name: Fallback to compton if picom unavailable on apt
+          ansible.builtin.package:
+            name: compton
+            state: present
+          when:
+            - ansible_pkg_mgr == "apt"
+            - picom_result is failed
+
+        - name: Install cool-retro-term (non-Alpine)
+          ansible.builtin.package:
+            name: cool-retro-term
+            state: present
+          when: ansible_pkg_mgr != "apk"
+          ignore_errors: true
+
+        - name: Enable lightdm service for next boot
+          ansible.builtin.service:
+            name: lightdm
+            enabled: true
+
+    - name: Install and configure Tailscale
+      when: install_tailscale | bool
+      block:
+        - name: Run Tailscale install script
+          ansible.builtin.shell: curl -fsSL https://tailscale.com/install.sh | sh
+          args:
+            creates: /usr/bin/tailscale
+
+        - name: Enable and start tailscaled
+          ansible.builtin.service:
+            name: tailscaled
+            enabled: true
+            state: started
+
+        - name: Authenticate Tailscale with auth key
+          ansible.builtin.command: "tailscale up --authkey={{ tailscale_authkey }}"
+          when: tailscale_authkey | length > 0
+          no_log: true
+          changed_when: true
+
+    - name: Import GitHub SSH public keys
+      when: github_keys_user | length > 0
+      block:
+        - name: Fetch GitHub SSH keys
+          ansible.builtin.uri:
+            url: "https://github.com/{{ github_keys_user }}.keys"
+            return_content: true
+          register: gh_keys_resp
+
+        - name: Ensure .ssh directory exists
+          ansible.builtin.file:
+            path: "{{ target_home }}/.ssh"
+            state: directory
+            owner: "{{ target_user }}"
+            mode: "0700"
+
+        - name: Add GitHub keys to authorized_keys
+          ansible.builtin.lineinfile:
+            path: "{{ target_home }}/.ssh/authorized_keys"
+            line: "{{ item }}"
+            create: true
+            owner: "{{ target_user }}"
+            mode: "0600"
+          loop: "{{ gh_keys_resp.content.splitlines() | select() | list }}"
+
+    - name: Install dotfiles from bare repository
+      become: true
+      become_user: "{{ target_user }}"
+      block:
+        - name: Check if .dotfiles already exists
+          ansible.builtin.stat:
+            path: "{{ target_home }}/.dotfiles"
+          register: dotfiles_stat
+
+        - name: Clone bare dotfiles repository
+          ansible.builtin.command:
+            cmd: "/usr/bin/git clone --bare {{ dotfiles_repo }} {{ target_home }}/.dotfiles"
+          when: not dotfiles_stat.stat.exists
+
+        - name: Checkout dotfiles (removing conflicts if needed)
+          ansible.builtin.shell: |
+            GIT_CMD="/usr/bin/git --git-dir={{ target_home }}/.dotfiles --work-tree={{ target_home }}"
+            if ! $GIT_CMD checkout 2>/dev/null; then
+              $GIT_CMD checkout 2>&1 | grep -E "^\s+\." | awk '{print $1}' | while IFS= read -r f; do
+                [ -n "$f" ] && rm -f "{{ target_home }}/$f"
+              done
+              $GIT_CMD checkout
+            fi
+            $GIT_CMD config --local status.showUntrackedFiles no
+          when: not dotfiles_stat.stat.exists
+          changed_when: true
+
+    - name: Autoremove unused apt packages
+      ansible.builtin.apt:
+        autoremove: true
+      when: ansible_pkg_mgr == "apt"
+
+    - name: Autoremove unused dnf packages
+      ansible.builtin.dnf:
+        autoremove: true
+      when: ansible_pkg_mgr == "dnf"
+
+    - name: Append host info and SSH config snippet to host-ini-info
+      ansible.builtin.shell: |
+        set -eu
+        info_file="{{ target_home }}/host-ini-info"
+        host_name="{{ ansible_hostname }}"
+        primary_ip="{{ ansible_default_ipv4.address | default('<IP_ADDRESS>') }}"
+        touch "$info_file"
+        {
+          echo "=== $(date -u '+%Y-%m-%d %H:%M:%S UTC') ==="
+          echo "Hostname: $host_name"
+          echo "Distro: {{ ansible_distribution | lower }} ({{ ansible_pkg_mgr }})"
+          echo "User: {{ target_user }}"
+          ip a | grep "scope global" || true
+          echo ""
+          echo "# SSH config snippet:"
+          echo "Host ${host_name}"
+          echo "    HostName ${primary_ip}"
+          echo "    User {{ target_user }}"
+          echo ""
+        } >> "$info_file"
+        chown "{{ target_user }}:$(id -gn {{ target_user }})" "$info_file"
+      changed_when: true
+
+    - name: Fetch host-ini-info to the Ansible control machine
+      ansible.builtin.fetch:
+        src: "{{ target_home }}/host-ini-info"
+        dest: "{{ host_info_dest }}/{{ inventory_hostname }}-host-ini-info"
+        flat: true
+
+    - name: Reboot system if requested
+      ansible.builtin.reboot:
+        msg: "Setup complete. Rebooting via Ansible..."
+      when: do_reboot | bool
